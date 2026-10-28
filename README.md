@@ -111,6 +111,18 @@ Procedure, Concepts, Comparison, Results.** In the Simulator tab, choose a mode
 (Unsynchronized/Synchronized), set buffer capacity and speeds, then use
 Start/Pause/Step/Stop/Reset, or pick a preset Scenario and click **Run Scenario**.
 
+## Interface Images
+<img width="1600" height="752" alt="image" src="https://github.com/user-attachments/assets/4cbc8aaf-656f-4ee5-a049-84e3729296c4" />
+<img width="1600" height="752" alt="image" src="https://github.com/user-attachments/assets/4c502bfa-0027-4e7b-994f-ccb170a50e60" />
+<img width="1600" height="758" alt="image" src="https://github.com/user-attachments/assets/4c6056f2-36c3-41b4-8dee-47bef75d1c22" />
+<img width="1600" height="750" alt="image" src="https://github.com/user-attachments/assets/c5da65f0-aa46-402f-933e-8d41c3ac71aa" />
+<img width="1600" height="753" alt="image" src="https://github.com/user-attachments/assets/4010bf16-9d5f-4860-a950-6221344102fe" />
+<img width="1600" height="749" alt="image" src="https://github.com/user-attachments/assets/e60178d3-cdf2-4815-bc20-239046874085" />
+<img width="1600" height="751" alt="image" src="https://github.com/user-attachments/assets/def809b7-3da1-4fe9-b041-43bebc98c6e9" />
+<img width="1600" height="752" alt="image" src="https://github.com/user-attachments/assets/ac21d88f-5a39-4998-8f0c-a59e238c5e99" />
+<img width="1600" height="761" alt="image" src="https://github.com/user-attachments/assets/53ae4bad-ceca-4acf-b8c4-fe21203f044b" />
+
+
 ## 8. How to Demonstrate Buffer Full
 
 Set a small buffer capacity (e.g. 3) with a fast production speed and slow
@@ -174,35 +186,3 @@ Producer–Consumer problem, bounded buffer, shared resource, race condition,
 critical section, mutual exclusion, semaphore, mutex, buffer full/empty
 handling, and timing/communication-window constraints.
 
-## 17. Troubleshooting
-
-- **Nothing moves after Start:** check that the buffer isn't already full/empty blocking both sides — use Step to inspect state.
-- **C program won't compile:** ensure `-lpthread` is included and a POSIX environment (Linux/macOS/WSL) is used.
-- **Race condition never appears:** it is probabilistic in live-run mode; use the dedicated Race Condition tab demo for a guaranteed, controlled demonstration.
-
-## 18. Viva Questions and Answers
-
-1. **What is the Producer–Consumer problem?** Two processes share a bounded buffer: one produces data into it, the other consumes data from it, and both must be coordinated so the buffer is never over- or under-accessed.
-2. **Who is the producer in this simulator?** The satellite, which generates sensor/data packets.
-3. **Who is the consumer?** The ground station, which receives and processes packets.
-4. **What is the buffer?** The satellite's onboard bounded storage that temporarily holds packets before they are transmitted.
-5. **Why is the buffer bounded?** Because real memory/storage is limited; an unbounded buffer isn't realistic and hides synchronization problems.
-6. **What happens when the buffer is full?** The producer (satellite) must stop and wait until a slot is freed.
-7. **What happens when the buffer is empty?** The consumer (ground station) must stop and wait until a new packet arrives.
-8. **What is a race condition?** An error where the final result depends on the unpredictable timing/order of two or more processes accessing shared data concurrently.
-9. **Where does the race condition occur in this simulator?** On the shared `count` variable when both satellite and ground station read and write it without synchronization.
-10. **What is a critical section?** The portion of code where a process accesses shared data; only one process should execute it at a time.
-11. **What is a mutex?** A binary lock that enforces mutual exclusion over a critical section.
-12. **What is a semaphore?** An integer counter with wait()/signal() operations used for signaling and resource counting between processes.
-13. **What is the purpose of the empty semaphore?** It counts available (unused) buffer slots and makes the producer wait when it reaches zero.
-14. **What is the purpose of the full semaphore?** It counts packets currently available and makes the consumer wait when it reaches zero.
-15. **Why is synchronization required?** To prevent race conditions and keep the shared buffer state consistent when multiple processes access it concurrently.
-16. **Why is sleep() not synchronization?** A delay only changes timing to make interleaving visible; it gives no guarantee that only one process touches shared data at a time, so a race condition can still happen.
-17. **What is the communication window?** A limited period during which the satellite and ground station can exchange data; outside it, no transmission is possible even if the buffer has data.
-18. **Why is packet waiting time included?** To illustrate that delayed data can become stale/less useful — a simulation parameter, not a real protocol rule.
-19. **What happens if communication closes?** The ground station stops consuming; packets stay in the buffer, which can then fill up and block the satellite too.
-20. **How does synchronization solve the problem?** By having the producer and consumer wait() on semaphores before accessing the buffer and lock()/unlock() a mutex around the actual read/write, guaranteeing mutual exclusion and no lost updates.
-
----
-
-*Educational project — simulation state is real and computed locally; nothing is faked for display purposes.*
