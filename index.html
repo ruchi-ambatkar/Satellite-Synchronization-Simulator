@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAT-SYNC – Satellite Producer–Consumer Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside class="side" id="side">
+  <div class="brand"><b>SAT-SYNC</b><span>Satellite Synchronization Simulator</span></div>
+  <nav id="tabs">
+    <button class="tab-btn active" data-tab="simulator">🛰 Mission Simulator</button>
+    <button class="tab-btn" data-tab="race">⚠ Race Condition</button>
+    <button class="tab-btn" data-tab="sync">🔒 Synchronization</button>
+    <button class="tab-btn" data-tab="procedure">📋 Procedure</button>
+    <button class="tab-btn" data-tab="concepts">🧠 Concepts</button>
+    <button class="tab-btn" data-tab="comparison">⚖ Comparison</button>
+    <button class="tab-btn" data-tab="results">📊 Results</button>
+    <button class="tab-btn" data-tab="viva">❓ Viva</button>
+  </nav>
+  <div class="side-foot">
+    <div><small>Mode</small><b id="sbMode">Unsynchronized</b></div>
+    <div><small>Simulation</small><b id="sbState">Stopped</b></div>
+    <button class="btn" id="sideReset">↻ Reset simulator</button>
+  </div>
+</aside>
+
+<div class="shell">
+<header class="top">
+  <button class="menu" id="menuBtn" aria-label="Menu">☰</button>
+  <div><h1>Satellite Synchronization Simulator</h1><p>Producer–Consumer Problem • Operating Systems</p></div>
+  <div class="top-r"><span class="online"><i></i>SYSTEM ONLINE</span><span class="modebadge" id="hdMode">UNSYNCHRONIZED</span></div>
+</header>
+
+<main>
+<!-- ============ SIMULATOR ============ -->
+<section id="simulator" class="tabpanel active">
+  <div class="welcome" id="welcome">
+    <div><h2>Welcome to SAT-SYNC</h2>
+    <p>A satellite produces data packets, a shared buffer stores them, and a ground station consumes them. Learn how the Producer–Consumer problem works — and what goes wrong without synchronization.</p></div>
+    <ul><li>🛰 <b>Satellite</b> produces packets</li><li>📦 <b>Buffer</b> temporarily stores them</li><li>🖥 <b>Ground Station</b> consumes them</li></ul>
+    <button class="btn primary" id="welcomeGo">Start simulation →</button>
+  </div>
+
+  <div class="pagehead"><h2>Mission Control</h2><p>Monitor packet production, buffer occupancy and ground-station consumption in real time.</p></div>
+
+  <div class="kpis">
+    <div class="kpi"><span>📦 Buffer usage</span><b id="k_buf">0 / 5</b><small id="k_pct">0% occupied</small><div class="kbar"><i id="k_bar"></i></div></div>
+    <div class="kpi"><span>🛰 Packets produced</span><b id="k_prod">0</b><small>sent by satellite</small></div>
+    <div class="kpi"><span>🖥 Packets consumed</span><b id="k_cons">0</b><small>received on ground</small></div>
+    <div class="kpi"><span>⚙ System state</span><b id="k_state">STOPPED</b><small id="k_mode">Unsynchronized</small></div>
+  </div>
+
+  <div class="panel">
+    <h3>Simulation mode</h3>
+    <div class="modes">
+      <button id="modeUnsync" class="mode active"><b>⚠ Unsynchronized</b><small>Race condition demonstration</small></button>
+      <button id="modeSync" class="mode"><b>🔒 Synchronized</b><small>Safe execution with mutex + semaphores</small></button>
+    </div>
+    <div class="controls" style="margin-top:12px">
+      <select id="scenarioSel" aria-label="Preset scenario">
+        <option value="">Choose a preset scenario…</option>
+        <option value="balanced">1. Balanced Production & Consumption</option>
+        <option value="fastsat">2. Fast Satellite / Slow Ground Station</option>
+        <option value="fastgnd">3. Slow Satellite / Fast Ground Station</option>
+        <option value="full">4. Buffer Full Demonstration</option>
+        <option value="empty">5. Buffer Empty Demonstration</option>
+        <option value="race">6. Race Condition Demonstration</option>
+        <option value="windowclosed">7. Communication Window Closed</option>
+        <option value="expiry">8. Packet Expiration</option>
+        <option value="full-demo">9. Full Satellite Communication Demonstration</option>
+      </select>
+      <button class="btn" id="runScenario">Run scenario</button>
+    </div>
+  </div>
+
+  <div class="panel stage-wrap">
+    <div class="banner" id="banner"><b id="bnTitle">BUFFER ACTIVE</b><span id="bnSub">Packets are flowing normally.</span></div>
+    <div class="stage" id="stage">
+      <div class="actor sat">
+        <div class="ico">🛰</div><h3>Satellite <small>Producer</small></h3>
+        <div id="satPill" class="status-pill pill-idle">Idle</div>
+        <div class="state-line" id="satState">No packet generated yet.</div>
+        <button class="btn" id="produceBtn" title="Manually produce one packet">Produce packet</button>
+      </div>
+      <div class="pipe"><span>DATA PACKETS</span><i></i></div>
+      <div class="buffer-col" id="bufCol">
+        <h3>Shared Buffer</h3>
+        <div class="slots" id="slots"></div>
+        <div class="buf-meta"><b id="bufCount">0</b> / <span id="bufCap">5</span> occupied · <span id="bufEmpty">5</span> free</div>
+        <div id="bufBadge" class="badge badge-ok">Normal</div>
+      </div>
+      <div class="pipe"><span>PACKET TRANSFER</span><i></i></div>
+      <div class="actor gnd">
+        <div class="ico">🖥</div><h3>Ground Station <small>Consumer</small></h3>
+        <div id="gndPill" class="status-pill pill-idle">Idle</div>
+        <div class="state-line" id="gndState">Waiting for data...</div>
+        <button class="btn" id="consumeBtn" title="Manually receive one packet">Receive packet</button>
+      </div>
+    </div>
+    <div class="legend"><span><i class="d on"></i>Active</span><span><i class="d"></i>Waiting</span><span><i class="sq on"></i>Occupied</span><span><i class="sq"></i>Empty</span><span><i class="sq ex"></i>Expired</span><span>⚠ Warning</span><span>🔒 Synchronized</span><em>Telemetry values are simulated.</em></div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <button class="btn primary" id="startBtn">▶ Start</button>
+      <button class="btn" id="pauseBtn" title="Freeze the simulation, keep state">⏸ Pause</button>
+      <button class="btn" id="stepBtn" title="Advance one event manually">⏭ Step</button>
+      <button class="btn" id="prevBtn" title="Undo the last manual step">↩ Previous</button>
+      <button class="btn stop" id="stopBtn" title="Stop timers, keep results">■ Stop</button>
+      <button class="btn" id="resetBtn" title="Clear buffer, stats and log">↻ Reset</button>
+      <span class="seg-l">Speed</span>
+      <select id="speedSel" aria-label="Speed"><option value="2">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option><option value="0.25">Very fast</option></select>
+    </div>
+    <div class="row">
+      <div class="col"><label>Buffer capacity</label><select id="capSel"><option>3</option><option selected>5</option><option>7</option><option>10</option></select></div>
+      <div class="col"><label>Satellite speed</label><select id="prodSpeed"><option value="2200">Slow</option><option value="1100" selected>Medium</option><option value="550">Fast</option></select></div>
+      <div class="col"><label>Ground station speed</label><select id="consSpeed"><option value="2600">Slow</option><option value="1400" selected>Medium</option><option value="750">Fast</option></select></div>
+      <div class="col"><label>Communication window</label><select id="winSel"><option value="10">10 sec</option><option value="20" selected>20 sec</option><option value="30">30 sec</option><option value="60">60 sec</option></select></div>
+      <div class="col"><label>Max packet wait</label><select id="maxWaitSel"><option value="0">Off</option><option value="6" selected>6 sec</option><option value="10">10 sec</option><option value="15">15 sec</option></select></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel" id="syncPanel">
+      <h3>Synchronization state <span class="lock" id="lockIco">🔓</span></h3>
+      <div class="trio">
+        <div><b id="s_empty">5</b><small>EMPTY<br>free slots</small></div>
+        <div><b id="s_full2">0</b><small>FULL<br>packets ready</small></div>
+        <div><b id="mutexNum">1</b><small>MUTEX<br>critical section</small></div>
+      </div>
+      <div class="sync-row"><span>Mutex</span><span class="sync-val" id="s_mutex">🔓 Available</span></div>
+      <div class="sync-row"><span>Mode</span><span class="sync-val" id="s_mode">OFF</span></div>
+      <p class="hint" id="syncHint">Unsynchronized: the numbers above mirror the buffer, with no protection.</p>
+    </div>
+    <div class="panel">
+      <h3>Communication window</h3>
+      <div class="win">
+        <div class="ring" id="ring"><b id="winTimer">20s</b></div>
+        <div><div id="winStatus" class="badge badge-ok">OPEN</div>
+        <p class="hint" id="winHint">Packets may wait in the buffer until communication is available.</p></div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="winBar"></div></div>
+      <div class="mini"><span>Capacity <b id="s_cap">5</b></span><span>Current <b id="s_cur">0</b></span><span>Free <b id="s_emptyslots">5</b></span><span>Full? <b id="s_full">No</b></span></div>
+    </div>
+  </div>
+
+  <div id="raceWarning" class="race-warning" style="display:none">
+    <b>⚠ UNSAFE SHARED ACCESS — race condition detected</b>
+    <div class="race-log" id="raceLog"></div>
+  </div>
+
+  <div class="panel"><h3>What is happening?</h3><div class="explain" id="explain">Press Start, Step, or Produce/Receive to begin.</div>
+    <details class="how"><summary>How it works</summary>
+      <ol><li>Satellite generates a packet</li><li>Packet enters the shared buffer</li><li>Ground station waits for data</li><li>Ground station consumes the packet</li></ol></details>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Simulation statistics</h3>
+      <div class="stat-grid">
+        <div class="stat"><b id="st_prod">0</b><span>Produced</span></div>
+        <div class="stat"><b id="st_cons">0</b><span>Consumed</span></div>
+        <div class="stat"><b id="st_inbuf">0</b><span>In buffer</span></div>
+        <div class="stat"><b id="st_exp">0</b><span>Expired</span></div>
+        <div class="stat"><b id="st_bfull">0</b><span>Buffer full events</span></div>
+        <div class="stat"><b id="st_bempty">0</b><span>Buffer empty events</span></div>
+        <div class="stat"><b id="st_race">0</b><span>Race events</span></div>
+        <div class="stat"><b id="st_syncblk">0</b><span>Sync blocks</span></div>
+        <div class="stat"><b id="st_avgwait">0.0s</b><span>Avg wait</span></div>
+        <div class="stat"><b id="st_maxwait">0.0s</b><span>Max wait</span></div>
+        <div class="stat"><b id="st_winused">0s</b><span>Window used</span></div>
+        <div class="stat"><b id="st_sync">OFF</b><span>Sync status</span></div>
+      </div>
+      <h4 class="sub">Buffer occupancy over time</h4>
+      <svg id="spark" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="panel">
+      <h3>Live event log</h3>
+      <div class="controls" style="margin-bottom:8px">
+        <button class="btn sm" id="clearLog">Clear</button>
+        <button class="btn sm" id="pauseLog">Pause log</button>
+        <label class="inline-check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
+      </div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RACE ============ -->
+<section id="race" class="tabpanel">
+  <div class="pagehead"><h2>Race Condition</h2><p>Observe what happens when the Satellite and Ground Station access shared data without synchronization.</p></div>
+  <div class="panel">
+    <h3>Two lanes, one shared <code>count</code></h3>
+    <div class="lanes">
+      <div class="lane sat"><h4>🛰 Satellite</h4><div class="st">1. Read count</div><div class="st">2. Compute count + 1</div><div class="st">3. Write count</div></div>
+      <div class="conflict">⚡<br>CONFLICT<small>both read the same old value</small></div>
+      <div class="lane gnd"><h4>🖥 Ground Station</h4><div class="st">1. Read count</div><div class="st">2. Compute count − 1</div><div class="st">3. Write count</div></div>
+    </div>
+    <p class="callout">Both threads access shared data at the same time without protection. The last write silently overwrites the first, so the result is inconsistent.</p>
+    <div class="row" style="margin-top:10px"><div class="badge badge-full">Without mutex: ⚠ race condition</div><div class="badge badge-ok">With mutex: ✓ one at a time</div></div>
+    <p class="hint"><b>sleep() is not synchronization</b> — a delay only makes timing easier to see. Only a mutex or semaphore guarantees mutual exclusion.</p>
+  </div>
+  <div class="panel">
+    <h3>Timeline demonstration (T0 → T5)</h3>
+    <div class="controls"><button class="btn danger" id="raceBtn">⚠ Demonstrate race condition</button></div>
+    <table class="timeline-table"><thead><tr><th>Time</th><th>Event</th><th>count</th></tr></thead><tbody id="timelineBody"></tbody></table>
+    <div id="raceResult" class="race-warning" style="display:none"></div>
+  </div>
+</section>
+
+<!-- ============ SYNC ============ -->
+<section id="sync" class="tabpanel">
+  <div class="pagehead"><h2>Synchronization</h2><p>A mutex and two semaphores keep the shared buffer safe.</p></div>
+  <div class="grid3">
+    <div class="panel sem"><h3>🔒 Mutex</h3><p>Protects the critical section. Only one thread may modify the buffer at a time.</p><b id="sync_mutex">🔓 UNLOCKED</b></div>
+    <div class="panel sem"><h3>⬜ Empty semaphore</h3><p>Counts free slots. The satellite waits on it before producing.</p><b id="sync_empty">5</b></div>
+    <div class="panel sem"><h3>🟦 Full semaphore</h3><p>Counts ready packets. The ground station waits on it before consuming.</p><b id="sync_full">0</b></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h3>🛰 Satellite (producer)</h3><ol class="flow"><li>wait(empty)</li><li>wait(mutex)</li><li>Add packet</li><li>signal(mutex)</li><li>signal(full)</li></ol></div>
+    <div class="panel"><h3>🖥 Ground station (consumer)</h3><ol class="flow"><li>wait(full)</li><li>wait(mutex)</li><li>Remove packet</li><li>signal(mutex)</li><li>signal(empty)</li></ol></div>
+  </div>
+</section>
+
+<section id="procedure" class="tabpanel">
+  <div class="pagehead"><h2>Procedure</h2><p>Eight steps from setup to comparison.</p></div>
+  <ol class="procedure-list" id="procList"></ol>
+</section>
+
+<section id="concepts" class="tabpanel">
+  <div class="pagehead"><h2>Concepts</h2><p>Every operating-systems term, mapped to the satellite scenario.</p></div>
+  <div class="cgrid" id="conceptsPanel"></div>
+</section>
+
+<section id="comparison" class="tabpanel">
+  <div class="pagehead"><h2>Comparison</h2><p>Unsynchronized versus synchronized execution.</p></div>
+  <div class="panel">
+    <table class="cmp-table">
+      <thead><tr><th>Feature</th><th><span class="tag bad">UNSAFE</span> Unsynchronized</th><th><span class="tag good">SAFE</span> Synchronized</th></tr></thead>
+      <tbody>
+        <tr><td>Mutex</td><td class="bad">❌ No</td><td class="good">✅ Yes</td></tr>
+        <tr><td>Semaphores</td><td class="bad">❌ No</td><td class="good">✅ Yes</td></tr>
+        <tr><td>Race condition</td><td class="bad">Possible</td><td class="good">Prevented</td></tr>
+        <tr><td>Buffer safety</td><td class="bad">Unsafe</td><td class="good">Safe</td></tr>
+        <tr><td>Concurrent access</td><td class="bad">Uncontrolled</td><td class="good">Controlled</td></tr>
+        <tr><td>Correctness</td><td class="bad">Not guaranteed</td><td class="good">Guaranteed</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="results" class="tabpanel">
+  <div class="pagehead"><h2>Results</h2><p>Snapshot of the current simulation run.</p></div>
+  <div class="panel">
+    <div class="controls"><button class="btn primary" id="genResults">Generate results summary</button><button class="btn" id="printBtn">Print report</button></div>
+    <div id="resultsBody" class="explain" style="margin-top:12px">Run the simulation, then generate a summary here.</div>
+  </div>
+  <div class="panel"><h3>Conclusion</h3><p class="callout">Synchronization ensures safe access to the shared buffer and prevents race conditions between the Satellite Producer and Ground Station Consumer.</p></div>
+</section>
+
+<section id="viva" class="tabpanel">
+  <div class="pagehead"><h2>Viva</h2><p>Select a question to reveal the answer.</p></div>
+  <div id="vivaList"></div>
+</section>
+</main>
+<footer class="footnote">Educational simulator · state is computed locally, nothing is faked</footer>
+</div>
+<script src="script.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
